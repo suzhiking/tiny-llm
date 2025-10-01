@@ -1,12 +1,14 @@
+import multiprocessing
 import os
+from collections import Counter
 from typing import BinaryIO
 
+import regex as re
 
-def find_chunk_boundaries(
-    file: BinaryIO,
-    desired_num_chunks: int,
-    split_special_token: bytes,
-) -> list[int]:
+PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+
+
+def find_chunk_boundaries(file: BinaryIO, special_tokens: list[bytes]) -> list[int]:
     """
     Chunk the file into parts that can be counted independently.
     May return fewer chunks if the boundaries end up overlapping.
@@ -48,15 +50,27 @@ def find_chunk_boundaries(
     # Make sure all boundaries are unique, but might be fewer than desired_num_chunks
     return sorted(set(chunk_boundaries))
 
-
-## Usage
-with open(..., "rb") as f:
-    num_processes = 4
-    boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
-
-    # The following is a serial implementation, but you can parallelize this
-    # by sending each start/end pair to a set of processes.
-    for start, end in zip(boundaries[:-1], boundaries[1:]):
-        f.seek(start)
-        chunk = f.read(end - start).decode("utf-8", errors="ignore")
+def count_pretokens(chunks: list[str]):
+    result: Counter[str] = Counter()
+    for chunk in chunks:
         # Run pre-tokenization on your chunk and store the counts for each pre-token
+        for match in re.finditer(PAT, chunk):
+            result[match.group()] += 1
+
+    return result
+
+
+def pretokenize(input_path, special_tokens) -> dict[str, int]:
+    """
+    Return count of pre-tokens
+    """
+    with open(input_path, encoding="utf-8") as f:
+        content = f.read()
+        num_processes = 4
+        chunks = re.split("|".join(map(re.escape, special_tokens)), content)
+        # start_end = zip(boundaries[:-1], boundaries[1:])
+
+        with multiprocessing.Pool(processes=num_processes) as pool:
+            results = pool.map(count_pretokens, [chunks[i::num_processes] for i in range(num_processes)])
+
+        return sum(results, Counter())
