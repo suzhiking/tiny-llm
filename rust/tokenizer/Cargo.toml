@@ -1,0 +1,23 @@
+[package]
+name = "tokenizer"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+fancy-regex = ">=0.16.2"
+memchr = "=2.6.3"
+rayon = "1.11.0"
+anyhow = "*"
+itertools = "*"
+serde = { version = "*", features = ["derive"] }
+serde_json = "*"
+regex = "*"
+clap = { version = "4.5.49", features = ["derive"] }
+clap_derive = "4.5.49"
+# for saving .npy
+npyz = {version = "0.8.4", features = ["npz"]}
+shellexpand = "*"
+bytemuck = "*"
+indicatif = "0.17"
+thiserror = ">=2.0.17"
+indexmap = { version = ">=2.12.0", features = ["serde"] }

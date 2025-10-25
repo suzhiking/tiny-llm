@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "tokenizer"
+]
+
+resolver = "2"
